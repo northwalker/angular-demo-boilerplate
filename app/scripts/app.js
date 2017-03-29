@@ -1,4 +1,6 @@
 (function () {
+  'use strict';
+
   angular.module('Demo', [])
     .constant('DEMO_API', 'http://localhost:3000/')
     .factory('DemoService', DemoService)
@@ -10,7 +12,7 @@
   function DemoService($http, DEMO_API) {
     var DemoService = {
       postData: function (newData) {
-        req = {
+        var req = {
           method: 'POST',
           url: DEMO_API,
           headers: {
@@ -60,19 +62,17 @@
   }
 
   function DemoCtrl($scope, $http, $timeout, DemoService) {
-
     var vm = this;
-    $scope.init = init;
 
+    $scope.init = init;
+    $scope.dayText = 'a good day.';
 
     function init() {
-
       console.log('Greeting from demo controller initial function.');
+
     }
 
     init();
-
-
   }
 
 })();
