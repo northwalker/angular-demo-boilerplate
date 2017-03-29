@@ -19,7 +19,7 @@
             'Authorization': token,
             'Content-Type': 'application/json'
           },
-          data: member
+          data: newData
         };
         // $http returns a promise, which has a then function, which also returns a promise
         var promise = $http(req)
@@ -69,6 +69,7 @@
 
     function init() {
       console.log('Greeting from demo controller initial function.');
+      $scope.dayText = new Date().getFullYear() + '-' + (new Date().getMonth() + 1) + '-' + new Date().getDate();
 
     }
 

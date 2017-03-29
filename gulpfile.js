@@ -11,12 +11,25 @@
   var browserSync = require('browser-sync');
   var reload = browserSync.reload;
 
+  var gitHash = '';
+
   gulp.task('clean', function (callback) {
-    require('del')(['.tmp', 'dist'], {dot: true})
+    del(['.tmp', 'dist'], {dot: true})
       .then(function (paths) {
         $.util.log('Deleted files and folders:\n', paths);
         callback();
       });
+  });
+
+  gulp.task('git:hash', function (callback) {
+    $.git.revParse({args: '--short HEAD'}, function (err, hash) {
+      // if (err) return;
+      if (hash) {
+        gitHash = hash;
+        $.util.log('current git hash: ' + hash);
+      }
+      callback();
+    });
   });
 
   gulp.task('lint', function () {
@@ -28,6 +41,9 @@
     ])
       .pipe($.eslint())
       .pipe($.eslint.format());
+  });
+
+  gulp.task('eslint', ['lint'], function () {
   });
 
   gulp.task('json', function () {
@@ -49,8 +65,9 @@
   });
 
   gulp.task('copy', function () {
-    gulp.src([
+    return gulp.src([
       'app/*',
+      '!app/favicon*',
       '!app/*.html'
     ], {
       dot: true
@@ -60,7 +77,7 @@
   });
 
   gulp.task('images', function () {
-    gulp.src('app/images/**/*')
+    return gulp.src('app/images/**/*')
       .pipe($.cache($.imagemin({
         progressive: true,
         interlaced: true
@@ -94,7 +111,7 @@
       .pipe($.autoprefixer(AUTOPREFIXER_BROWSERS))
       // .pipe(gulp.dest('.tmp/styles'))
       .pipe($.concat('app.min.css'))
-      .pipe($.if('*.css', $.cssnano()))
+      .pipe($.if('*.css', $.csso()))
       .pipe($.sourcemaps.write())
       .pipe(gulp.dest('dist/styles'))
       .pipe(gulp.dest('.tmp/styles'))
@@ -102,7 +119,7 @@
   });
 
   gulp.task('scripts', function () {
-    gulp.src([
+    return gulp.src([
       './app/scripts/**/*.js'
       // './app/scripts/app.js'
     ])
@@ -123,21 +140,21 @@
   gulp.task('html', function () {
     return gulp.src('app/**/*.html')
       .pipe($.useref())
-
-      // Minify any HTML
-      .pipe($.if('*.html', $.htmlmin({
+      .pipe($.if('*.js', $.uglify()))
+      .pipe($.if('*.css', $.csso()))
+      .pipe($.replace('<meta name="version" content="">', '<meta name="version" content="' + gitHash + '">'))
+      .pipe($.htmlmin({
         removeComments: true,
         collapseWhitespace: true,
         collapseBooleanAttributes: true,
-        removeAttributeQuotes: true,
+        // removeAttributeQuotes: true,
         removeRedundantAttributes: true,
         removeEmptyAttributes: true,
         removeScriptTypeAttributes: true,
         removeStyleLinkTypeAttributes: true,
-        minifyJS: true,             // Gogle Analytics code
+        minifyJS: true,  // Gogle Analytics code
         minifyCSS: true
-      })))
-      // Output files
+      }))
       .pipe(gulp.dest('dist'))
       .pipe($.if('*.html', $.size({title: 'html', showFiles: true})));
   });
@@ -181,9 +198,14 @@
     gulp.watch(['app/json/**/*'], reload);
 
   });
+
   gulp.task('build', ['clean'], function (cb) {
     runSequence(
-      'styles', 'lint', 'scripts', 'html', 'images', 'json', 'font', 'copy',
+      'lint',
+      'git:hash',
+      ['styles', 'scripts'],   // run in parallel
+      'html',
+      ['images', 'json', 'font', 'misc', 'copy'],
       cb
     );
   });
